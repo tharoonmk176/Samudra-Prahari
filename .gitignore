@@ -1,0 +1,19 @@
+# Environments
+venv/
+.env
+
+# Cache
+__pycache__/
+*.pyc
+
+# Heavy Data & Models
+data/
+archives/
+models/*.zip
+runs/
+
+# Temporary Outputs
+temp_uploads/
+outputs/
+scratch/
+.pytest_cache/
