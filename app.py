@@ -118,22 +118,74 @@ if uploaded_files:
                 cv2.rectangle(ind_final, (x1, y1), (x2, y2), color, 3)
                 cv2.putText(ind_final, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
                 
+            ind_formatted_detections = []
+            for b in ind_boxes:
+                ind_formatted_detections.append({
+                    "class": names[b[5]],
+                    "class_id": b[5],
+                    "box": [b[0], b[1], b[2], b[3]],
+                    "calibrated_conf": b[4]
+                })
+            
+            ind_geo = GeoReferencer(
+                metadata_available=False,
+                resolution_m_per_pixel=0.1,
+                base_lat=start_lat if enable_geo else None,
+                base_lon=start_lon if enable_geo else None,
+                towfish_speed=towfish_speed if enable_geo else 3.0
+            )
+            ind_h, ind_w = ind_img.shape[:2]
+            ind_report_data = ind_geo.generate_report(ind_formatted_detections, image_width=ind_w, image_height=ind_h, output_name=f"report_{file.name}")
+                
             individual_results.append({
                 "name": file.name,
                 "final_img": ind_final,
-                "boxes": ind_boxes
+                "boxes": ind_boxes,
+                "report_data": ind_report_data
             })
             
         with st.status("Synthesizing Acoustic Map Pipeline...", expanded=True) as status:
-            if enable_stitching and len(strip_paths) > 1:
-                st.write("Phase Correlation Stitching initialized...")
-                mosaic_img = create_acoustic_map_from_strips(strip_paths, direction=stitch_direction)
+            if enable_stitching and len(individual_results) > 1:
+                st.write("Stitching Individual Analyses into Master Map...")
                 
-                st.write("Sliding-Window YOLOv8 Inference...")
-                final_map, boxes = detect_on_acoustic_map(mosaic_img, "models/GhostNetSonar/best.pt")
+                final_map_images = []
+                master_boxes = []
+                current_offset = 0
+                base_dim = None
+                
+                for res in individual_results:
+                    img = res["final_img"]
+                    
+                    if stitch_direction == "Vertical":
+                        if base_dim is None: base_dim = img.shape[1]
+                        if img.shape[1] != base_dim:
+                            img = cv2.resize(img, (base_dim, img.shape[0]))
+                            
+                        final_map_images.append(img)
+                        for b in res["boxes"]:
+                            x1, y1, x2, y2, conf, cls_id = b
+                            master_boxes.append((x1, y1 + current_offset, x2, y2 + current_offset, conf, cls_id))
+                        current_offset += img.shape[0]
+                    else:
+                        if base_dim is None: base_dim = img.shape[0]
+                        if img.shape[0] != base_dim:
+                            img = cv2.resize(img, (img.shape[1], base_dim))
+                            
+                        final_map_images.append(img)
+                        for b in res["boxes"]:
+                            x1, y1, x2, y2, conf, cls_id = b
+                            master_boxes.append((x1 + current_offset, y1, x2 + current_offset, y2, conf, cls_id))
+                        current_offset += img.shape[1]
+                
+                if stitch_direction == "Vertical":
+                    final_map = cv2.vconcat(final_map_images)
+                else:
+                    final_map = cv2.hconcat(final_map_images)
+                    
+                boxes = master_boxes
                 
                 st.write("Building Intelligence Report...")
-                h, w = mosaic_img.shape[:2]
+                h, w = final_map.shape[:2]
                 report_data = None
                 
                 if enable_geo:
@@ -194,7 +246,7 @@ if "acoustic_map_data" in st.session_state:
         
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.markdown(f"<div class='metric-card'><div class='metric-value'>{len(boxes)}</div><div class='metric-label'>Anomalies Detected</div></div>", unsafe_allow_html=True)
+            st.markdown(f"<div class='metric-card'><div class='metric-value'>{len(boxes)}</div><div class='metric-label'>Debris Detected</div></div>", unsafe_allow_html=True)
         with col2:
             st.markdown(f"<div class='metric-card'><div class='metric-value'>{w} x {h}</div><div class='metric-label'>Mosaic Dimensions</div></div>", unsafe_allow_html=True)
         with col3:
@@ -258,7 +310,7 @@ if "acoustic_map_data" in st.session_state:
     
     if "individual_results" in data:
         for idx, res in enumerate(data["individual_results"]):
-            with st.expander(f"Strip {idx+1}: {res['name']} ({len(res['boxes'])} anomalies)"):
+            with st.expander(f"Strip {idx+1}: {res['name']} ({len(res['boxes'])} debris items)"):
                 col_img, col_metrics = st.columns([2, 1])
                 with col_img:
                     st.image(cv2.cvtColor(res['final_img'], cv2.COLOR_BGR2RGB), use_container_width=True)
@@ -269,3 +321,16 @@ if "acoustic_map_data" in st.session_state:
                         st.write(f"**{names[cls_id]}** (Conf: {conf:.1%})")
                         st.write(f"Coords: [{x1}, {y1}] to [{x2}, {y2}]")
                         st.write("---")
+                
+                if res.get("report_data"):
+                    st.markdown(f"#### Intelligence Report: {res['name']}")
+                    ind_df = pd.DataFrame(res["report_data"])
+                    st.dataframe(ind_df, use_container_width=True)
+                    
+                    id_col1, id_col2 = st.columns(2)
+                    with id_col1:
+                        with open(f"outputs/report_{res['name']}.csv", "r") as f:
+                            st.download_button(f"Download CSV", f, file_name=f"report_{res['name']}.csv", mime="text/csv", key=f"csv_{idx}", use_container_width=True)
+                    with id_col2:
+                        with open(f"outputs/report_{res['name']}.json", "r") as f:
+                            st.download_button(f"Download JSON", f, file_name=f"report_{res['name']}.json", mime="application/json", key=f"json_{idx}", use_container_width=True)

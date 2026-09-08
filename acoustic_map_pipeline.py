@@ -39,76 +39,76 @@ def detect_on_acoustic_map(mosaic, model_path="models/GhostNetSonar/best.pt"):
     
     H, W = mosaic.shape[:2]
     
-    # We slide a 640x640 window down the mosaic
-    # Step size 320 to ensure 50% overlap (so objects aren't cut in half)
-    chunk_size = 640
-    step = 320
+    # Calculate native high-resolution image size for YOLO (must be multiple of 32)
+    max_dim = max(H, W)
+    native_imgsz = int(np.ceil(max_dim / 32.0)) * 32
     
-    boxes = [] # (x1, y1, x2, y2, conf, cls_id)
+    print(f"Running Native High-Res YOLOv8 Inference at {native_imgsz}px...")
+    # By passing the entire massive stitched map at native resolution, we completely avoid
+    # the sliding-window artifact that cuts objects in half and drops large boxes.
+    results = model(mosaic, imgsz=native_imgsz, conf=0.15, iou=0.4, verbose=False)
     
-    for y in range(0, H, step):
-        y1 = y
-        y2 = min(H, y + chunk_size)
-        
-        if y2 - y1 < 100: break # Skip tiny slivers
-        
-        chunk = mosaic[y1:y2, :]
-        
-        # We enforce chunk_size for YOLO so it doesn't rescale
-        # If it's the bottom chunk, we pad it to 640
-        padded_chunk = np.zeros((chunk_size, W, 3), dtype=np.uint8)
-        padded_chunk[:(y2-y1), :] = chunk
-        results = model(padded_chunk, conf=0.15, iou=0.4, verbose=False)
-        
-        for r in results:
-            for box in r.boxes:
-                conf = float(box.conf[0])
-                cls_id = int(box.cls[0])
-                bx1, by1, bx2, by2 = map(int, box.xyxy[0])
-                
-                # If box is in the padded black area, ignore
-                if by1 > (y2-y1): continue
-                
-                # --- CLASSICAL CV SHADOW FILTER ---
-                # Only apply strict shadow filtering to small objects (Pipes, Cylinders, Ghost Nets)
-                # Shipwrecks (cls 0) and Aircraft (cls 1) cast massive, unpredictable shadows that shouldn't be penalized
-                cls_id = int(box.cls[0])
-                if cls_id in [2, 3, 4]:
-                    roi = chunk[by1:min(by2, y2-y1), bx1:bx2]
-                    if roi.shape[0] > 5 and roi.shape[1] > 5:
-                        gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-                        shadow_pixels = np.sum(gray_roi < 30)
-                        total_pixels = roi.shape[0] * roi.shape[1]
-                        shadow_ratio = shadow_pixels / total_pixels
-                        
-                        if shadow_ratio < 0.02:
-                            conf -= 0.1 
-                        elif shadow_ratio > 0.80:
-                            continue 
-                
-                if conf < 0.10: continue 
-                
-                # Convert chunk coordinates to global mosaic coordinates
-                global_y1 = y1 + by1
-                global_y2 = y1 + min(by2, y2-y1)
-                
-                boxes.append((bx1, global_y1, bx2, global_y2, conf, cls_id))
-                
-    # Basic Non-Maximum Suppression (NMS) to remove duplicates from overlap
     final_boxes = []
-    # Very crude NMS
-    for b in boxes:
-        duplicate = False
-        for fb in final_boxes:
-            # Check center distance
-            cx1, cy1 = (b[0]+b[2])/2, (b[1]+b[3])/2
-            cx2, cy2 = (fb[0]+fb[2])/2, (fb[1]+fb[3])/2
-            dist = np.sqrt((cx1-cx2)**2 + (cy1-cy2)**2)
-            if dist < 100 and b[5] == fb[5]: # Same class and close
-                duplicate = True
-                break
-        if not duplicate:
-            final_boxes.append(b)
+    for r in results:
+        for box in r.boxes:
+            conf = float(box.conf[0])
+            cls_id = int(box.cls[0])
+            bx1, by1, bx2, by2 = map(int, box.xyxy[0])
+            
+            # --- CLASSICAL CV SHADOW FILTER ---
+            # Only apply strict shadow filtering to small objects (Pipes, Cylinders, Ghost Nets)
+            if cls_id in [2, 3, 4]:
+                roi = mosaic[by1:by2, bx1:bx2]
+                if roi.shape[0] > 5 and roi.shape[1] > 5:
+                    gray_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+                    shadow_pixels = np.sum(gray_roi < 30)
+                    total_pixels = roi.shape[0] * roi.shape[1]
+                    shadow_ratio = shadow_pixels / total_pixels
+                    
+                    if shadow_ratio < 0.02:
+                        conf -= 0.1 
+                    elif shadow_ratio > 0.80:
+                        continue 
+            
+            if conf >= 0.10:
+                final_boxes.append((bx1, by1, bx2, by2, conf, cls_id))
+                
+    # Aggressive Spatial Merging (Bounding Box Union)
+    # If the model outputs multiple small boxes for one shipwreck, this forces them 
+    # to merge into one massive box by taking the min/max coordinates of the cluster.
+    merged_boxes = []
+    distance_threshold = 150 # Merge boxes that are within 150 pixels of each other
+    
+    # Run multiple passes to agglomerate clusters that bridge together
+    for _ in range(3):
+        new_merged = []
+        for b in final_boxes:
+            x1, y1, x2, y2, conf, cls_id = b
+            
+            merged = False
+            for i, mb in enumerate(new_merged):
+                mx1, my1, mx2, my2, mconf, mcls_id = mb
+                if cls_id != mcls_id: continue
+                
+                # Check distance/overlap
+                ex1, ey1, ex2, ey2 = x1 - distance_threshold, y1 - distance_threshold, x2 + distance_threshold, y2 + distance_threshold
+                emx1, emy1, emx2, emy2 = mx1 - distance_threshold, my1 - distance_threshold, mx2 + distance_threshold, my2 + distance_threshold
+                
+                if not (ex2 < emx1 or ex1 > emx2 or ey2 < emy1 or ey1 > emy2):
+                    # Intersects! Take the UNION of the coordinates
+                    new_x1 = min(x1, mx1)
+                    new_y1 = min(y1, my1)
+                    new_x2 = max(x2, mx2)
+                    new_y2 = max(y2, my2)
+                    new_conf = max(conf, mconf) # Keep highest confidence
+                    
+                    new_merged[i] = (new_x1, new_y1, new_x2, new_y2, new_conf, cls_id)
+                    merged = True
+                    break
+                    
+            if not merged:
+                new_merged.append(b)
+        final_boxes = new_merged
             
     # Draw boxes
     colors = {
@@ -121,7 +121,7 @@ def detect_on_acoustic_map(mosaic, model_path="models/GhostNetSonar/best.pt"):
     
     names = ['Shipwreck', 'Aircraft', 'Pipe', 'Cylinder', 'Ghost Net']
     
-    print(f"Found {len(final_boxes)} anomalies in the acoustic map!")
+    print(f"Found {len(final_boxes)} debris items in the acoustic map!")
     
     for b in final_boxes:
         x1, y1, x2, y2, conf, cls_id = b
