@@ -11,6 +11,7 @@ An automated, edge-capable computer vision pipeline that ingests Side-Scan Sonar
 ### Custom YOLOv8 Object Detection
 - Trained on compiled SCTD and KLSG datasets
 - Optimized for edge deployment on marine AUVs (ONNX export)
+- **Validation Performance**: 88.5% mAP@50. Fully documented with `results.csv`, PR curves, and confusion matrices in the `models` directory.
 
 ### Adaptive Lee Speckle Filter *(Upgraded)*
 - **Lee filter** instead of median blur — preserves thin ghost-net structures and 1px filaments that median filtering would destroy

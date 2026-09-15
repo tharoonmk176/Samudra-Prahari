@@ -4,6 +4,7 @@ import glob
 import cv2
 import numpy as np
 import xml.etree.ElementTree as ET
+import random
 
 # Master classes: ['shipwreck', 'aircraft', 'pipe', 'cylinder', 'ghost_net']
 # IDs:                 0            1          2         3           4
@@ -13,6 +14,8 @@ def setup_dirs(base_dir):
         shutil.rmtree(base_dir)
     os.makedirs(f"{base_dir}/images/train", exist_ok=True)
     os.makedirs(f"{base_dir}/labels/train", exist_ok=True)
+    os.makedirs(f"{base_dir}/images/val", exist_ok=True)
+    os.makedirs(f"{base_dir}/labels/val", exist_ok=True)
     return base_dir
 
 def process_ai4(dest):
@@ -41,11 +44,12 @@ def process_ai4(dest):
             img_path = mask_path.replace("labels", "images")
             if os.path.exists(img_path):
                 img_name = f"ai4_{os.path.basename(img_path)}"
+                split_dir = "val" if random.random() < 0.2 else "train"
                 # Convert PNG to JPG to save space/standardize
                 img = cv2.imread(img_path)
                 if img is not None:
-                    cv2.imwrite(f"{dest}/images/train/{img_name.replace('.png', '.jpg')}", img)
-                    with open(f"{dest}/labels/train/{img_name.replace('.png', '.txt')}", "w") as f:
+                    cv2.imwrite(f"{dest}/images/{split_dir}/{img_name.replace('.png', '.jpg')}", img)
+                    with open(f"{dest}/labels/{split_dir}/{img_name.replace('.png', '.txt')}", "w") as f:
                         f.write("\n".join(yolo_lines))
                     count += 1
                     if count >= 300: break # Keep dataset balanced
@@ -81,8 +85,9 @@ def process_sctd(dest):
             img_path = os.path.join("SCTD/SCTD/JPEGImages", img_name)
             if os.path.exists(img_path):
                 out_name = f"sctd_{img_name}"
-                shutil.copy(img_path, f"{dest}/images/train/{out_name}")
-                with open(f"{dest}/labels/train/{out_name.replace('.jpg', '.txt')}", "w") as f:
+                split_dir = "val" if random.random() < 0.2 else "train"
+                shutil.copy(img_path, f"{dest}/images/{split_dir}/{out_name}")
+                with open(f"{dest}/labels/{split_dir}/{out_name.replace('.jpg', '.txt')}", "w") as f:
                     f.write("\n".join(yolo_lines))
     print(f"-> Added {count_s} ships and {count_a} aircraft")
 
@@ -122,9 +127,10 @@ def process_uatd(dest):
             if os.path.exists(img_path):
                 # Convert BMP to JPG
                 img = cv2.imread(img_path)
-                out_name = f"uatd_{img_name.replace('.bmp', '.jpg')}"
-                cv2.imwrite(f"{dest}/images/train/{out_name}", img)
-                with open(f"{dest}/labels/train/{out_name.replace('.jpg', '.txt')}", "w") as f:
+                out_name = f"uatd_{img_name.replace(\'.bmp\', \'.jpg\')}"
+                split_dir = "val" if random.random() < 0.2 else "train"
+                cv2.imwrite(f"{dest}/images/{split_dir}/{out_name}", img)
+                with open(f"{dest}/labels/{split_dir}/{out_name.replace('.jpg', '.txt')}", "w") as f:
                     f.write("\n".join(yolo_lines))
                 count += 1
                 if count >= 300: break # Keep balanced
@@ -149,8 +155,9 @@ def process_20xx_pipes(dest):
             img_path = txt.replace('.txt', '.jpg')
             if os.path.exists(img_path):
                 out_name = f"pipe20xx_{os.path.basename(img_path)}"
-                shutil.copy(img_path, f"{dest}/images/train/{out_name}")
-                with open(f"{dest}/labels/train/{out_name.replace('.jpg', '.txt')}", "w") as f:
+                split_dir = "val" if random.random() < 0.2 else "train"
+                shutil.copy(img_path, f"{dest}/images/{split_dir}/{out_name}")
+                with open(f"{dest}/labels/{split_dir}/{out_name.replace('.jpg', '.txt')}", "w") as f:
                     f.write("\n".join(yolo_lines))
                 count += 1
                 if count >= 300: break
@@ -170,13 +177,14 @@ def process_ghost_nets(dest):
             if parts: yolo_lines.append(f"4 " + " ".join(parts[1:]))
             
         out_name = f"synth_{os.path.basename(img)}"
-        shutil.copy(img, f"{dest}/images/train/{out_name}")
-        with open(f"{dest}/labels/train/{out_name.replace('.jpg', '.txt')}", "w") as f:
+        split_dir = "val" if random.random() < 0.2 else "train"
+        shutil.copy(img, f"{dest}/images/{split_dir}/{out_name}")
+        with open(f"{dest}/labels/{split_dir}/{out_name.replace('.jpg', '.txt')}", "w") as f:
             f.write("\n".join(yolo_lines))
     print(f"-> Added {len(imgs[:300])} ghost nets")
 
 def write_yaml(dest):
-    content = "train: images/train\nval: images/train\nnc: 5\nnames: ['shipwreck', 'aircraft', 'pipe', 'cylinder', 'ghost_net']"
+    content = "train: images/train\nval: images/val\nnc: 5\nnames: ['shipwreck', 'aircraft', 'pipe', 'cylinder', 'ghost_net']"
     with open(f"{dest}/data.yaml", "w") as f: f.write(content)
 
 if __name__ == "__main__":
