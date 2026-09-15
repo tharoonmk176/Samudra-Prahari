@@ -77,13 +77,7 @@ streamlit run app.py --server.fileWatcherType none
 ├── shadow_filter.py          # Behind-box shadow scoring + YOLO recalibration
 ├── geo_report.py             # pyproj geodesic geo-referencing + report gen
 ├── acoustic_map_pipeline.py  # Strip stitching + mosaic detection
-├── scripts/                  # 19+ utility scripts
-│   ├── synth_net.py          # Ghost-net data generation utility
-│   ├── voc2yolo.py           # SCTD VOC→YOLO converter
-│   ├── train_yolo.py         # YOLOv8 training
-│   └── ...
-├── notebooks/                # Colab training notebooks
-├── models/GhostNetSonar/     # Trained weights (best.pt, best.onnx)
+├── models/GhostNetSonar/     # Trained weights and validation metrics
 └── outputs/                  # Generated reports and annotated maps
 ```
 
@@ -146,7 +140,7 @@ Raw Sonar Strips
 
 ---
 
-## Honest Caveats
+## Deployment Notes
 
 - **Geo-coordinates require real nav metadata.** Without GPS/XTF, coordinates are null (never fabricated).
 - The shadow filter is classical CV. Calibrate the weights on your operational data.
