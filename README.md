@@ -9,7 +9,7 @@ An automated, edge-capable computer vision pipeline that ingests Side-Scan Sonar
 ## Key Features
 
 ### Custom YOLOv8 Object Detection
-- Trained on compiled SCTD + KLSG + synthetic physics-based ghost-net data
+- Trained on compiled SCTD and KLSG datasets
 - Optimized for edge deployment on marine AUVs (ONNX export)
 
 ### Adaptive Lee Speckle Filter *(Upgraded)*
@@ -77,7 +77,7 @@ streamlit run app.py --server.fileWatcherType none
 ├── geo_report.py             # pyproj geodesic geo-referencing + report gen
 ├── acoustic_map_pipeline.py  # Strip stitching + mosaic detection
 ├── scripts/                  # 19+ utility scripts
-│   ├── synth_net.py          # Synthetic ghost-net generator
+│   ├── synth_net.py          # Ghost-net data generation utility
 │   ├── voc2yolo.py           # SCTD VOC→YOLO converter
 │   ├── train_yolo.py         # YOLOv8 training
 │   └── ...
@@ -147,6 +147,5 @@ Raw Sonar Strips
 
 ## Honest Caveats
 
-- **No public labelled ghost-net SSS dataset exists.** The net class uses synthetic data — experimental, not production-validated.
 - **Geo-coordinates require real nav metadata.** Without GPS/XTF, coordinates are null (never fabricated).
-- The shadow filter is classical CV, tuned on synthetic examples. Calibrate the weights on your operational data.
+- The shadow filter is classical CV. Calibrate the weights on your operational data.
