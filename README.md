@@ -77,6 +77,10 @@ streamlit run app.py --server.fileWatcherType none
 ├── shadow_filter.py          # Behind-box shadow scoring + YOLO recalibration
 ├── geo_report.py             # pyproj geodesic geo-referencing + report gen
 ├── acoustic_map_pipeline.py  # Strip stitching + mosaic detection
+├── scripts/                  # Utilities
+│   ├── train_yolo.py         # YOLOv8 training script
+│   └── synth_net.py          # Synthetic ghost-net generator
+├── notebooks/                # Colab training & data generation notebooks
 ├── models/GhostNetSonar/     # Trained weights and validation metrics
 └── outputs/                  # Generated reports and annotated maps
 ```
