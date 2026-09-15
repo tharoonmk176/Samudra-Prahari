@@ -1,4 +1,4 @@
-# Samudra Prahari - AI-Powered Marine Debris Detection
+# Samudra Prahari — AI-Powered Marine Debris Detection
 
 **Ministry of Earth Sciences (MoES) | NIOT | Problem Statement ID: 26057**
 
