@@ -1,8 +1,8 @@
-# Samudra Prahari — AI-Powered Marine Debris Detection
+# Samudra Prahari - AI-Powered Marine Debris Detection
 
 **Ministry of Earth Sciences (MoES) | NIOT | Problem Statement ID: 26057**
 
-An automated, edge-capable computer vision pipeline that ingests Side-Scan Sonar (SSS) imagery, stitches it into contiguous acoustic maps, identifies man-made marine debris (Ghost Nets, Shipwrecks, Aircraft, Pipes, Cylinders), and generates actionable geo-anchored intelligence reports.
+An automated, edge-capable computer vision pipeline that ingests Side-Scan Sonar (SSS) imagery, stitches it into contiguous acoustic maps, identifies man-made marine debris (Fish Nets, Shipwrecks, Aircraft, Pipes, Cylinders), and generates actionable geo-anchored intelligence reports.
 
 ---
 
