@@ -1,0 +1,4 @@
+train: images/train
+val: images/train
+nc: 5
+names: ['shipwreck', 'aircraft', 'pipe', 'cylinder', 'ghost_net']

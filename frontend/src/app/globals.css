@@ -1,0 +1,130 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-electric-blue: #3b82f6;
+  --animate-spin-slow: spin 8s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+  }
+}
+
+body {
+  background-color: #020617; /* slate-950 */
+  color: #f8fafc; /* slate-50 */
+  background-image: radial-gradient(circle at 50% -20%, #1e3a8a 0%, transparent 40%), radial-gradient(circle at 100% 100%, #0f172a 0%, transparent 40%);
+  background-attachment: fixed;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Leaflet Fix */
+.leaflet-default-icon-path {
+    background-image: url(https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png);
+}
+
+/* Hide Number Input Spinners */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* Dynamic Theme Overrides */
+
+/* 1. Operator Light Theme */
+html[data-theme="Operator Light"] body {
+  background-color: #f1f5f9 !important;
+  background-image: none !important;
+  color: #0f172a !important;
+}
+html[data-theme="Operator Light"] .bg-slate-950, html[data-theme="Operator Light"] .bg-zinc-950 { background-color: #e2e8f0 !important; }
+html[data-theme="Operator Light"] .bg-slate-900 { background-color: #ffffff !important; }
+html[data-theme="Operator Light"] .bg-slate-800, html[data-theme="Operator Light"] .hover\:bg-slate-800:hover { background-color: #f1f5f9 !important; }
+html[data-theme="Operator Light"] .border-slate-800, html[data-theme="Operator Light"] .border-white\/5, html[data-theme="Operator Light"] .border-white\/10 { border-color: #cbd5e1 !important; }
+html[data-theme="Operator Light"] .text-slate-400, html[data-theme="Operator Light"] .text-slate-500 { color: #475569 !important; }
+html[data-theme="Operator Light"] .text-slate-300, html[data-theme="Operator Light"] .text-slate-200 { color: #334155 !important; }
+html[data-theme="Operator Light"] .text-white { color: #0f172a !important; }
+html[data-theme="Operator Light"] .bg-white\/5 { background-color: rgba(0,0,0,0.05) !important; }
+html[data-theme="Operator Light"] .hover\:bg-white\/10:hover { background-color: rgba(0,0,0,0.1) !important; }
+
+/* 2. Terminal High Contrast Theme */
+html[data-theme="Terminal High Contrast"] body {
+  background-color: #000000 !important;
+  background-image: none !important;
+  color: #00ff00 !important;
+}
+html[data-theme="Terminal High Contrast"] .bg-slate-950, html[data-theme="Terminal High Contrast"] .bg-zinc-950 { background-color: #000000 !important; }
+html[data-theme="Terminal High Contrast"] .bg-slate-900 { background-color: #000a00 !important; }
+html[data-theme="Terminal High Contrast"] .bg-slate-800, html[data-theme="Terminal High Contrast"] .hover\:bg-slate-800:hover { background-color: #001a00 !important; }
+html[data-theme="Terminal High Contrast"] .border-slate-800, html[data-theme="Terminal High Contrast"] .border-white\/5 { border-color: #004400 !important; }
+html[data-theme="Terminal High Contrast"] .text-slate-400, html[data-theme="Terminal High Contrast"] .text-slate-500 { color: #00cc00 !important; }
+html[data-theme="Terminal High Contrast"] .text-slate-300, html[data-theme="Terminal High Contrast"] .text-slate-200 { color: #00ee00 !important; }
+html[data-theme="Terminal High Contrast"] .text-white { color: #00ff00 !important; }
+html[data-theme="Terminal High Contrast"] .bg-white\/5 { background-color: rgba(0,255,0,0.05) !important; }
+html[data-theme="Terminal High Contrast"] .text-blue-400, html[data-theme="Terminal High Contrast"] .text-blue-500 { color: #00ff00 !important; }
+html[data-theme="Terminal High Contrast"] .bg-blue-500, html[data-theme="Terminal High Contrast"] .bg-blue-600 { background-color: #003300 !important; border: 1px solid #00ff00 !important; color: #00ff00 !important; }
+
+
+/* Safety Layout Background Overrides */
+html[data-theme="Operator Light"] .bg-zinc-950 { background-color: #e2e8f0 !important; }
+html[data-theme="Terminal High Contrast"] .bg-zinc-950 { background-color: #000000 !important; }
+
+/* Tactical Map Filters */
+.tactical-leaflet-map {
+  background: #020617 !important;
+}
+
+.map-filter-dark {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+
+.map-filter-tactical {
+  filter: sepia(100%) hue-rotate(180deg) saturate(150%) brightness(70%) contrast(110%);
+}
+
+.custom-popup .leaflet-popup-content-wrapper {
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0;
+}
+.custom-popup .leaflet-popup-tip-container {
+  display: none;
+}

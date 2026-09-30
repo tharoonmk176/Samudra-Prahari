@@ -1,0 +1,7 @@
+FROM alpine:latest
+RUN apk add --no-cache curl
+RUN curl -O https://dl.min.io/server/minio/release/linux-amd64/minio
+RUN chmod +x minio
+RUN mv minio /usr/local/bin/
+EXPOSE 9000 9001
+CMD ["minio", "server", "/data", "--console-address", ":9001"]
